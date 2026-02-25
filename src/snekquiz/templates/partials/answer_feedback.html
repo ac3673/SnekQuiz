@@ -1,0 +1,40 @@
+<div class="question-card">
+  <p class="question-text">{{ question.question_text }}</p>
+
+  <ul class="options-list">
+    {% for opt in question.options %}
+    <li class="option-item
+      {% if opt.id in correct_answers %} correct{% endif %}
+      {% if opt.id in user_answers and opt.id not in correct_answers %} incorrect{% endif %}
+    ">
+      <label>
+        {% if question.question_type == "multiple_answer" %}
+        <input type="checkbox" disabled {% if opt.id in user_answers %}checked{% endif %}>
+        {% else %}
+        <input type="radio" disabled {% if opt.id in user_answers %}checked{% endif %}>
+        {% endif %}
+        <span class="option-id">{{ opt.id }}</span>
+        <span class="option-text">{{ opt.text }}</span>
+        {% if opt.id in correct_answers %}
+        <span class="icon-correct">&#10003;</span>
+        {% elif opt.id in user_answers %}
+        <span class="icon-incorrect">&#10007;</span>
+        {% endif %}
+      </label>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <div class="feedback {% if is_correct %}feedback-correct{% else %}feedback-incorrect{% endif %}">
+    <p class="feedback-label">{% if is_correct %}Correct!{% else %}Incorrect{% endif %}</p>
+    <p class="feedback-explanation">{{ question.explanation }}</p>
+  </div>
+
+  {% if next_url %}
+  <a href="{{ next_url }}" class="btn btn-primary">Next &rarr;</a>
+  {% else %}
+  <form method="post" action="/quiz/{{ quiz_id }}/complete">
+    <button type="submit" class="btn btn-primary">View Results</button>
+  </form>
+  {% endif %}
+</div>

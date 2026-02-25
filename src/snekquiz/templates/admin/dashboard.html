@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Admin – {{ app_title }}{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+  <div class="admin-header">
+    <h1>Admin Dashboard</h1>
+    <a href="/admin/upload" class="btn btn-primary">Upload Quiz</a>
+  </div>
+
+  {% if stats %}
+  <div class="stats-table-wrap">
+    <table class="stats-table">
+      <thead>
+        <tr>
+          <th>Quiz</th>
+          <th>Attempts</th>
+          <th>Users</th>
+          <th>Avg %</th>
+          <th>Best %</th>
+          <th>Worst %</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in stats %}
+        <tr>
+          <td class="cell-name">
+            <a href="/admin/quiz/{{ s.quiz_id }}">{{ s.quiz_name }}</a>
+          </td>
+          <td class="cell-num">{{ s.attempt_count or 0 }}</td>
+          <td class="cell-num">{{ s.unique_users or 0 }}</td>
+          <td class="cell-num">{{ s.avg_score_pct if s.avg_score_pct is not none else "–" }}</td>
+          <td class="cell-num">{{ s.best_score_pct if s.best_score_pct is not none else "–" }}</td>
+          <td class="cell-num">{{ s.worst_score_pct if s.worst_score_pct is not none else "–" }}</td>
+          <td class="cell-action">
+            <a href="/admin/quiz/{{ s.quiz_id }}" class="btn-sm">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty-state">No quizzes yet. Upload one to get started.</p>
+  {% endif %}
+</section>
+{% endblock %}

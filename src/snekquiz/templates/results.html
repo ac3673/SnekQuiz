@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Results – {{ quiz_name }}{% endblock %}
+
+{% block content %}
+<section class="results-page">
+  <h1>{{ quiz_name }}</h1>
+  <div class="results-card">
+    <p class="score-label">Your Score</p>
+    <p class="score-value">{{ score }} / {{ total }}</p>
+    <p class="score-percent">{{ ((score / total * 100) | round) | int }}%</p>
+
+    <div class="results-bar">
+      <div class="results-bar-fill" style="width: {{ (score / total * 100) | round }}%"></div>
+    </div>
+
+    <div class="results-breakdown">
+      <h2>Review</h2>
+      {% for item in review %}
+      <div class="review-item {% if item.is_correct %}review-correct{% else %}review-incorrect{% endif %}">
+        <div class="review-header">
+          <span class="review-num">Q{{ item.num }}</span>
+          <span class="review-icon">{% if item.is_correct %}&#10003;{% else %}&#10007;{% endif %}</span>
+        </div>
+        <p class="review-question">{{ item.question_text }}</p>
+        <p class="review-detail">
+          <span>Your answer: {{ item.user_answers | join(", ") if item.user_answers else "(none)" }}</span>
+          &nbsp;&middot;&nbsp;
+          <span>Correct: {{ item.correct_answers | join(", ") }}</span>
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <a href="/" class="btn btn-primary">Back to Quizzes</a>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ quiz_name }} – Admin{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+  <div class="admin-header">
+    <div>
+      <a href="/admin" class="back-link">&larr; Dashboard</a>
+      <h1>{{ quiz_name }}</h1>
+      <p class="meta">{{ question_count }} question{{ "s" if question_count != 1 }} &middot; {{ attempts | length }}
+        attempt{{ "s" if attempts | length != 1 }}</p>
+    </div>
+    <form method="post" action="/admin/quiz/{{ quiz_id }}/delete" class="delete-form"
+      onsubmit="return confirm('Delete this quiz and all its attempts?')">
+      <button type="submit" class="btn btn-danger">Delete Quiz</button>
+    </form>
+  </div>
+
+  {# ---------- Question-by-question analytics ---------- #}
+  {% if question_stats %}
+  <div class="section-block">
+    <h2>Question Difficulty</h2>
+    <p class="section-desc">Sorted by hardest first &mdash; questions most people got wrong are at the top.</p>
+    <div class="stats-table-wrap">
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>Q#</th>
+            <th>Question</th>
+            <th>Correct</th>
+            <th>Accuracy</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for qs in question_stats %}
+          <tr>
+            <td class="cell-num">{{ qs.num }}</td>
+            <td class="cell-question">{{ qs.question_text }}</td>
+            <td class="cell-num">{{ qs.correct_count }} / {{ qs.total_attempts }}</td>
+            <td class="cell-num">
+              <div class="accuracy-wrap">
+                <div class="accuracy-bar">
+                  <div
+                    class="accuracy-fill {% if qs.correct_pct < 40 %}fill-low{% elif qs.correct_pct < 70 %}fill-mid{% else %}fill-high{% endif %}"
+                    style="width: {{ qs.correct_pct }}%"></div>
+                </div>
+                <span class="accuracy-label">{{ qs.correct_pct }}%</span>
+              </div>
+            </td>
+            <td class="cell-answer">{{ qs.correct_answers | join(", ") }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---------- Submissions table ---------- #}
+  <div class="section-block">
+    <h2>Submissions</h2>
+    {% if attempts %}
+    <div class="stats-table-wrap">
+      <table class="stats-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Score</th>
+            <th>%</th>
+            <th>Completed</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in attempts %}
+          <tr>
+            <td class="cell-name">{{ a.username }}</td>
+            <td class="cell-num">{{ a.score }} / {{ a.total }}</td>
+            <td class="cell-num">
+              <span
+                class="score-pill {% if a.score_pct >= 80 %}pill-high{% elif a.score_pct >= 50 %}pill-mid{% else %}pill-low{% endif %}">{{
+                a.score_pct }}%</span>
+            </td>
+            <td class="cell-date">{{ a.completed_at }}</td>
+            <td class="cell-action">
+              <a href="/admin/quiz/{{ quiz_id }}/attempt/{{ a.id }}" class="btn-sm">View</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty-state">No attempts yet for this quiz.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

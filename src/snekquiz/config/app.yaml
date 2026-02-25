@@ -1,0 +1,25 @@
+app:
+  title: "SnekQuiz"
+  host: "0.0.0.0"
+  port: 8000
+  debug: true
+
+db:
+  path: "data/snekquiz.db"
+
+auth:
+  # In production, override via environment variables or a separate secrets file
+  admins:
+    admin: "admin"
+  users:
+    alice: "password123"
+    bob: "password456"
+
+  # Optional: Active Directory / LDAP authentication
+  # Users not found in the local admins/users maps above will be
+  # authenticated via LDAP simple-bind when server_url is set.
+  ldap:
+    server_url: # e.g. "ldaps://ad.example.com:636"
+    domain: # e.g. "CORP" -- binds as CORP\username
+    use_ssl: true
+    admin_groups: [] # e.g. ["CN=QuizAdmins,OU=Groups,DC=example,DC=com"]

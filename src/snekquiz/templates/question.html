@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ quiz_name }} – Q{{ question_num }}{% endblock %}
+
+{% block content %}
+<section class="question-page">
+  <div class="quiz-header">
+    <h1>{{ quiz_name }}</h1>
+    <span class="progress">Question {{ question_num }} of {{ total_questions }}</span>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" style="width: {{ (question_num / total_questions * 100) | round }}%"></div>
+  </div>
+
+  <div id="question-area">
+    <div class="question-card">
+      <p class="question-text">{{ question.question_text }}</p>
+
+      {% if question.question_type == "multiple_answer" %}
+      <p class="hint">Select all that apply.</p>
+      {% endif %}
+
+      <form
+        hx-post="/quiz/{{ quiz_id }}/answer/{{ question.id }}"
+        hx-target="#question-area"
+        hx-swap="innerHTML"
+      >
+        <ul class="options-list">
+          {% for opt in question.options %}
+          <li class="option-item">
+            <label>
+              {% if question.question_type == "multiple_answer" %}
+              <input type="checkbox" name="answers" value="{{ opt.id }}">
+              {% else %}
+              <input type="radio" name="answers" value="{{ opt.id }}" required>
+              {% endif %}
+              <span class="option-id">{{ opt.id }}</span>
+              <span class="option-text">{{ opt.text }}</span>
+            </label>
+          </li>
+          {% endfor %}
+        </ul>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

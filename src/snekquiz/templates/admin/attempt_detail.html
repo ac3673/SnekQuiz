@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ attempt.username }}'s attempt – {{ quiz_name }}{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+  <a href="/admin/quiz/{{ quiz_id }}" class="back-link">&larr; {{ quiz_name }}</a>
+
+  <div class="admin-header">
+    <div>
+      <h1>{{ attempt.username }}'s Submission</h1>
+      <p class="meta">
+        {{ quiz_name }} &middot;
+        Score: {{ attempt.score }} / {{ attempt.total }}
+        ({{ ((attempt.score / attempt.total * 100) | round) | int }}%) &middot;
+        {{ attempt.completed_at }}
+      </p>
+    </div>
+  </div>
+
+  <div class="attempt-review">
+    {% for item in review %}
+    <div class="attempt-question-card {% if item.is_correct %}card-correct{% else %}card-incorrect{% endif %}">
+      <div class="aq-header">
+        <span class="aq-num">Q{{ item.num }}</span>
+        <span class="aq-icon">{% if item.is_correct %}&#10003;{% else %}&#10007;{% endif %}</span>
+      </div>
+      <p class="aq-text">{{ item.question_text }}</p>
+
+      {% if item.question_type == "multiple_answer" %}
+      <p class="hint">Multiple answers</p>
+      {% endif %}
+
+      <ul class="aq-options">
+        {% for opt in item.options %}
+        <li class="aq-option
+          {% if opt.id in item.correct_answers %} opt-correct{% endif %}
+          {% if opt.id in item.user_answers and opt.id not in item.correct_answers %} opt-incorrect{% endif %}
+        ">
+          <span class="aq-opt-id">{{ opt.id }}</span>
+          <span class="aq-opt-text">{{ opt.text }}</span>
+          {% if opt.id in item.user_answers %}
+            <span class="aq-opt-tag tag-user">User</span>
+          {% endif %}
+          {% if opt.id in item.correct_answers %}
+            <span class="aq-opt-tag tag-correct">Correct</span>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+
+      <div class="aq-explanation">
+        <strong>Explanation:</strong> {{ item.explanation }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

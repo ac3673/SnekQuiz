@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ app_title }}{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+  <header>
+    <div class="header-inner">
+      <a href="/" class="logo">&#9670; {{ app_title }}</a>
+      <nav class="header-nav">
+        {% if is_admin %}
+        <a href="/admin" class="nav-link">Admin</a>
+        {% endif %}
+        {% if username %}
+        <span class="user-badge">{{ username }}</span>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <span>&copy; 2025 {{ app_title }}</span>
+  </footer>
+</body>
+
+</html>

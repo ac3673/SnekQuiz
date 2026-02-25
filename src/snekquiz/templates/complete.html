@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Complete – {{ quiz_name }}{% endblock %}
+
+{% block content %}
+<section class="question-page">
+  <div class="quiz-header">
+    <h1>{{ quiz_name }}</h1>
+    <span class="progress">All questions answered</span>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" style="width: 100%"></div>
+  </div>
+
+  <div class="question-card" style="text-align: center; padding: 2.5rem 1.5rem;">
+    <p class="question-text">You've answered all {{ total_questions }} questions.</p>
+    <form method="post" action="/quiz/{{ quiz_id }}/complete" style="margin-top: 1.5rem;">
+      <button type="submit" class="btn btn-primary">View Results</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Upload Quiz – Admin{% endblock %}
+
+{% block content %}
+<section class="admin-page">
+  <a href="/admin" class="back-link">&larr; Dashboard</a>
+  <h1>Upload Quiz</h1>
+
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="/admin/upload" class="upload-form">
+    <label for="quiz_json">Paste quiz JSON</label>
+    <textarea
+      id="quiz_json"
+      name="quiz_json"
+      rows="20"
+      placeholder='{ "quiz_name": "...", "questions": [...] }'
+      required
+    >{{ prefill or "" }}</textarea>
+    <button type="submit" class="btn btn-primary">Upload</button>
+  </form>
+</section>
+{% endblock %}
