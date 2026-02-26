@@ -53,6 +53,19 @@ async def init_db(db_path: str) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_attempts_user
             ON attempts(username);
+
+        CREATE TABLE IF NOT EXISTS quiz_progress (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            username     TEXT    NOT NULL,
+            quiz_id      INTEGER NOT NULL REFERENCES quizzes(id),
+            question_id  INTEGER NOT NULL,
+            answers_json TEXT    NOT NULL,
+            updated_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(username, quiz_id, question_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_progress_user_quiz
+            ON quiz_progress(username, quiz_id);
         """
     )
     await _db.commit()
@@ -204,9 +217,66 @@ async def get_quiz_attempts(quiz_id: int) -> list[dict]:
 
 
 async def delete_quiz(quiz_id: int) -> bool:
-    """Delete a quiz and all its attempts. Returns True if the quiz existed."""
+    """Delete a quiz and all its attempts/progress. Returns True if the quiz existed."""
     db = await get_db()
+    await db.execute("DELETE FROM quiz_progress WHERE quiz_id = ?", (quiz_id,))
     await db.execute("DELETE FROM attempts WHERE quiz_id = ?", (quiz_id,))
     cursor = await db.execute("DELETE FROM quizzes WHERE id = ?", (quiz_id,))
     await db.commit()
     return cursor.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Quiz progress (incremental, per-question persistence)
+# ---------------------------------------------------------------------------
+
+
+async def save_progress_answer(
+    username: str,
+    quiz_id: int,
+    question_id: int,
+    answers: list[str],
+) -> None:
+    """Upsert a single question's answers into the progress table."""
+    db = await get_db()
+    await db.execute(
+        "INSERT INTO quiz_progress (username, quiz_id, question_id, answers_json)"
+        " VALUES (?, ?, ?, ?)"
+        " ON CONFLICT(username, quiz_id, question_id)"
+        " DO UPDATE SET answers_json = excluded.answers_json,"
+        "              updated_at   = datetime('now')",
+        (username, quiz_id, question_id, json.dumps(answers)),
+    )
+    await db.commit()
+
+
+async def get_progress(username: str, quiz_id: int) -> dict[int, list[str]]:
+    """Return saved progress as ``{question_id: [answer_ids, ...]}``."""
+    db = await get_db()
+    cursor = await db.execute(
+        "SELECT question_id, answers_json FROM quiz_progress WHERE username = ? AND quiz_id = ?",
+        (username, quiz_id),
+    )
+    rows = await cursor.fetchall()
+    return {row["question_id"]: json.loads(row["answers_json"]) for row in rows}
+
+
+async def delete_progress(username: str, quiz_id: int) -> None:
+    """Remove all saved progress for a user/quiz pair."""
+    db = await get_db()
+    await db.execute(
+        "DELETE FROM quiz_progress WHERE username = ? AND quiz_id = ?",
+        (username, quiz_id),
+    )
+    await db.commit()
+
+
+async def get_in_progress_quiz_ids(username: str) -> set[int]:
+    """Return quiz ids where the user has saved progress but no completed attempt yet."""
+    db = await get_db()
+    cursor = await db.execute(
+        "SELECT DISTINCT p.quiz_id FROM quiz_progress p WHERE p.username = ?",
+        (username,),
+    )
+    rows = await cursor.fetchall()
+    return {row["quiz_id"] for row in rows}

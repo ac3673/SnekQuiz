@@ -19,7 +19,13 @@
 }
 
 /* Reset */
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -110,7 +116,9 @@ h2 {
   transition: background 0.15s, transform 0.1s;
 }
 
-.btn:active { transform: scale(0.98); }
+.btn:active {
+  transform: scale(0.98);
+}
 
 .btn-primary {
   background: var(--teal);
@@ -150,8 +158,13 @@ h2 {
   box-shadow: var(--shadow);
 }
 
-.quiz-card.completed a {
+.quiz-card.completed a,
+.quiz-card.completed .quiz-link {
   border-left: 4px solid var(--mint);
+}
+
+.quiz-card.in-progress a {
+  border-left: 4px solid var(--teal);
 }
 
 .quiz-name {
@@ -175,6 +188,11 @@ h2 {
 .badge-done {
   background: var(--grey-200);
   color: var(--grey-600);
+}
+
+.badge-progress {
+  background: rgba(9, 157, 145, 0.15);
+  color: var(--teal);
 }
 
 .empty-state {
@@ -408,8 +426,13 @@ h2 {
   font-weight: 700;
 }
 
-.review-correct .review-icon { color: var(--mint); }
-.review-incorrect .review-icon { color: #e03131; }
+.review-correct .review-icon {
+  color: var(--mint);
+}
+
+.review-incorrect .review-icon {
+  color: #e03131;
+}
 
 .review-question {
   font-weight: 500;
@@ -669,9 +692,17 @@ h2 {
   transition: width 0.3s ease;
 }
 
-.fill-low  { background: #e03131; }
-.fill-mid  { background: #f08c00; }
-.fill-high { background: var(--mint); }
+.fill-low {
+  background: #e03131;
+}
+
+.fill-mid {
+  background: #f08c00;
+}
+
+.fill-high {
+  background: var(--mint);
+}
 
 .accuracy-label {
   font-size: 0.8rem;
@@ -690,9 +721,20 @@ h2 {
   font-weight: 600;
 }
 
-.pill-high { background: rgba(0, 204, 153, 0.15); color: #087f5b; }
-.pill-mid  { background: rgba(240, 140, 0, 0.15); color: #b35c00; }
-.pill-low  { background: rgba(224, 49, 49, 0.12); color: #c92a2a; }
+.pill-high {
+  background: rgba(0, 204, 153, 0.15);
+  color: #087f5b;
+}
+
+.pill-mid {
+  background: rgba(240, 140, 0, 0.15);
+  color: #b35c00;
+}
+
+.pill-low {
+  background: rgba(224, 49, 49, 0.12);
+  color: #c92a2a;
+}
 
 /* ===================================================================
    ADMIN – Attempt detail
@@ -736,8 +778,13 @@ h2 {
   font-size: 1rem;
 }
 
-.card-correct .aq-icon { color: var(--mint); }
-.card-incorrect .aq-icon { color: #e03131; }
+.card-correct .aq-icon {
+  color: var(--mint);
+}
+
+.card-incorrect .aq-icon {
+  color: #e03131;
+}
 
 .aq-text {
   font-weight: 600;

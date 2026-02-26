@@ -44,18 +44,6 @@ def get_admin_user(
 # ---- helpers ---------------------------------------------------------------
 
 
-# In-memory session store: {username: {quiz_id: {question_id: [answers]}}}
-_sessions: dict[str, dict[int, dict[int, list[str]]]] = {}
-
-
-def _get_session(username: str, quiz_id: int) -> dict[int, list[str]]:
-    return _sessions.setdefault(username, {}).setdefault(quiz_id, {})
-
-
-def _clear_session(username: str, quiz_id: int) -> None:
-    _sessions.get(username, {}).pop(quiz_id, None)
-
-
 def _tpl(request: Request, name: str, ctx: dict, *, status_code: int = 200) -> HTMLResponse:
     """Shorthand for rendering a template."""
     ctx.setdefault("app_title", request.app.state.settings.app_title)
@@ -108,6 +96,9 @@ async def home(
     username, is_admin = user
     quizzes = await db.get_all_quizzes()
     completed_ids = await db.get_completed_quiz_ids(username)
+    in_progress_ids = await db.get_in_progress_quiz_ids(username)
+    # Don't show "in progress" for quizzes that are already completed
+    in_progress_ids -= completed_ids
     return _tpl(
         request,
         "home.html",
@@ -116,6 +107,7 @@ async def home(
             "is_admin": is_admin,
             "quizzes": quizzes,
             "completed_ids": completed_ids,
+            "in_progress_ids": in_progress_ids,
         },
     )
 
@@ -126,13 +118,22 @@ async def quiz_start(
     request: Request,
     user: Annotated[tuple[str, bool], Depends(get_current_user)],
 ):
-    """Redirect to the first question (and reset session)."""
+    """Redirect to the first unanswered question, resuming any saved progress."""
     username, _is_admin = user
     row = await db.get_quiz_by_id(quiz_id)
     if not row:
         raise HTTPException(status_code=404, detail="Quiz not found")
-    _clear_session(username, quiz_id)
-    return RedirectResponse(url=f"/quiz/{quiz_id}/q/1", status_code=302)
+
+    quiz = Quiz.model_validate_json(row["data_json"])
+    progress = await db.get_progress(username, quiz_id)
+
+    # Find the first unanswered question
+    for i, q in enumerate(quiz.questions, 1):
+        if q.id not in progress:
+            return RedirectResponse(url=f"/quiz/{quiz_id}/q/{i}", status_code=302)
+
+    # All questions answered - go straight to the finish interstitial
+    return RedirectResponse(url=f"/quiz/{quiz_id}/finish", status_code=302)
 
 
 @router.get("/quiz/{quiz_id}/q/{question_num}", response_class=HTMLResponse)
@@ -154,11 +155,11 @@ async def quiz_question(
     question = quiz.questions[question_num - 1]
 
     # If user already answered this question, skip forward
-    session = _get_session(username, quiz_id)
-    if question.id in session:
+    progress = await db.get_progress(username, quiz_id)
+    if question.id in progress:
         for next_num in range(question_num + 1, len(quiz.questions) + 1):
             next_q = quiz.questions[next_num - 1]
-            if next_q.id not in session:
+            if next_q.id not in progress:
                 return RedirectResponse(url=f"/quiz/{quiz_id}/q/{next_num}", status_code=302)
         return RedirectResponse(url=f"/quiz/{quiz_id}/finish", status_code=302)
 
@@ -195,8 +196,7 @@ async def submit_answer(
     if question is None:
         raise HTTPException(status_code=404, detail="Question not found")
 
-    session = _get_session(username, quiz_id)
-    session[question_id] = answers
+    await db.save_progress_answer(username, quiz_id, question_id, answers)
 
     is_correct = sorted(answers) == sorted(question.correct_answers)
 
@@ -258,12 +258,12 @@ async def quiz_complete(
         raise HTTPException(status_code=404, detail="Quiz not found")
 
     quiz = Quiz.model_validate_json(row["data_json"])
-    session = _get_session(username, quiz_id)
+    progress = await db.get_progress(username, quiz_id)
 
     score = 0
     total = len(quiz.questions)
     for q in quiz.questions:
-        user_ans = session.get(q.id, [])
+        user_ans = progress.get(q.id, [])
         if sorted(user_ans) == sorted(q.correct_answers):
             score += 1
 
@@ -272,9 +272,9 @@ async def quiz_complete(
         quiz_id=quiz_id,
         score=score,
         total=total,
-        answers={str(k): v for k, v in session.items()},
+        answers={str(k): v for k, v in progress.items()},
     )
-    _clear_session(username, quiz_id)
+    await db.delete_progress(username, quiz_id)
     return RedirectResponse(url=f"/quiz/{quiz_id}/results/{attempt_id}", status_code=303)
 
 

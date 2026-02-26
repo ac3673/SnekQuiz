@@ -7,12 +7,18 @@
   {% if quizzes %}
   <ul class="quiz-grid">
     {% for q in quizzes %}
-    <li class="quiz-card {% if q.id in completed_ids %}completed{% endif %}">
+    <li
+      class="quiz-card {% if q.id in completed_ids %}completed{% elif q.id in in_progress_ids %}in-progress{% endif %}">
       {% if q.id in completed_ids %}
       <span class="quiz-link disabled">
         <span class="quiz-name">{{ q.name }}</span>
         <span class="badge badge-done">Completed</span>
       </span>
+      {% elif q.id in in_progress_ids %}
+      <a href="/quiz/{{ q.id }}">
+        <span class="quiz-name">{{ q.name }}</span>
+        <span class="badge badge-progress">In Progress</span>
+      </a>
       {% else %}
       <a href="/quiz/{{ q.id }}">
         <span class="quiz-name">{{ q.name }}</span>
