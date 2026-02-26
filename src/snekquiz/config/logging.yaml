@@ -3,11 +3,7 @@ disable_existing_loggers: false
 
 formatters:
   standard:
-    format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-    datefmt: "%Y-%m-%d %H:%M:%S"
-  detailed:
-    format: "%(asctime)s [%(levelname)s] %(name)s %(module)s.%(funcName)s:%(lineno)d - %(message)s"
-    datefmt: "%Y-%m-%d %H:%M:%S"
+    format: "%(asctime)s %(name)-10s %(levelname)-8s %(message)s"
 
 handlers:
   console:
@@ -18,7 +14,7 @@ handlers:
   file:
     class: logging.handlers.RotatingFileHandler
     level: DEBUG
-    formatter: detailed
+    formatter: standard
     filename: data/snekquiz.log
     maxBytes: 5242880
     backupCount: 3
@@ -30,7 +26,7 @@ loggers:
     propagate: false
   uvicorn:
     level: INFO
-    handlers: [console]
+    handlers: [console, file]
     propagate: false
 
 root:
