@@ -1,9 +1,4 @@
-app:
-  title: "SnekQuiz"
-  host: "0.0.0.0"
-  port: 8000
-  debug: true
-
+app_title: SnezQuiz
 db:
   path: "data/snekquiz.db"
 
@@ -18,8 +13,12 @@ auth:
   # Optional: Active Directory / LDAP authentication
   # Users not found in the local admins/users maps above will be
   # authenticated via LDAP simple-bind when server_url is set.
-  ldap:
-    server_url: # e.g. "ldaps://ad.example.com:636"
-    domain: # e.g. "CORP" -- binds as CORP\username
-    use_ssl: true
-    admin_groups: [] # e.g. ["CN=QuizAdmins,OU=Groups,DC=example,DC=com"]
+
+  #ldap:
+    #server_url: # e.g. "ldaps://ad.example.com:636"
+    #search_base: # e.g. "DC=example,DC=com"
+    #domain: # e.g. "CORP" -- binds as CORP\username
+    #search_filter: # e.g. "(&(objectclass=person)(SamAccountName={username}))"
+    #group_attrib: # e.g. "memberOf"
+    #use_ssl: true
+    #admin_groups: [] # e.g. [QuizAdmins] (only the CN= part is used from "CN=QuizAdmins,OU=Groups,DC=example,DC=com"

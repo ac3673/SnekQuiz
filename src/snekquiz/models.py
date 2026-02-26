@@ -2,18 +2,11 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 # ---------------------------------------------------------------------------
 # App configuration (parsed from config/app.yaml)
 # ---------------------------------------------------------------------------
-
-
-class AppSettings(BaseModel):
-    title: str = "SnekQuiz"
-    host: str = "0.0.0.0"
-    port: int = 8000
-    debug: bool = False
 
 
 class DbSettings(BaseModel):
@@ -32,19 +25,24 @@ class LdapSettings(BaseModel):
     """
 
     server_url: str | None = None
+    search_base: str | None = None
+    search_filter: str = "(&(objectclass=person)(SamAccountName={username}))"
+    group_attrib: str = "memberOf"
     domain: str | None = None
     use_ssl: bool = True
-    admin_groups: list[str] = []
+    admin_groups: list[str] = Field(default_factory=list)
+    admin_users: list[str] = Field(default_factory=list)
 
 
 class AuthSettings(BaseModel):
-    admins: dict[str, str] = {}
-    users: dict[str, str] = {}
+    admins: dict[str, SecretStr] = Field(default_factory=dict)
+    users: dict[str, SecretStr] = Field(default_factory=dict)
     ldap: LdapSettings = LdapSettings()
 
 
 class Settings(BaseModel):
-    app: AppSettings = AppSettings()
+    model_config = ConfigDict(extra="forbid")
+    app_title: str = "SnekQuiz"
     db: DbSettings = DbSettings()
     auth: AuthSettings = AuthSettings()
 

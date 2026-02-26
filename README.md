@@ -102,7 +102,7 @@ See the example quiz format below.
 ```
 src/snekquiz/
 ├── __init__.py          # App factory & CLI entry-point
-├── auth.py              # HTTP Basic auth helpers
+├── auth.py              # Authentication including LDAP layer
 ├── database.py          # SQLite database layer (aiosqlite)
 ├── models.py            # Pydantic models (config + quiz data)
 ├── routes.py            # Web & API routes
@@ -127,12 +127,21 @@ src/snekquiz/
 
 ## Configuration
 
-**App config** (`src/snekquiz/config/app.yaml`) is loaded into a `Settings` Pydantic
-model at startup. Edit it to change the title, host, port, database path, or
-credentials. Users are split into `admins` and `users` sections.
+**App config** (`src/snekquiz/config/app.yaml`) provides default config if no path is provided.
 
-**Logging config** (`src/snekquiz/config/logging.yaml`) is loaded via
-`logging.config.dictConfig`. Logs go to both stdout and a rotating file in `data/`.
+A user specified config file can supplied with:
+
+- The `APP_CONFIG` environment variable is read to load a config file, eg `export APP_CONFIG=/path/to/config.yaml`.
+- Providing `-c` or `--app-config` arguments
+
+
+**Logging config** (`src/snekquiz/config/logging.yaml`) provides default logging config.
+
+A user specified config file can supplied with:
+- The `LOG_CONFIG` environment variable
+- The `-l` or `--log-config` arguments
+
+When running with `uvicorn` you must use the environment variable approach.
 
 ## Development
 
@@ -159,4 +168,4 @@ See [LICENSE](LICENSE).
 
 ---
 
-<sub>Built with vibes and [Claude Opus 4](https://www.anthropic.com/claude).</sub>
+<sub>Built with vibes and [Claude Opus 4.6](https://www.anthropic.com/claude).</sub>

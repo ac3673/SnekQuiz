@@ -8,16 +8,41 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-from snekquiz import database as db
-from snekquiz.auth import get_admin_user, get_current_user
-from snekquiz.models import Quiz
+from . import database as db
+from .models import Quiz
 
-logger = logging.getLogger("snekquiz.routes")
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+security = HTTPBasic()
+
+
+def get_current_user(
+    request: Request,
+    credentials: Annotated[HTTPBasicCredentials, Depends(security)],
+) -> tuple[str, bool]:
+    """FastAPI dependency - returns (username, is_admin)."""
+    return request.app.state.auth.authenticate_user(credentials)
+
+
+def get_admin_user(
+    user: Annotated[tuple[str, bool], Depends(get_current_user)],
+) -> str:
+    """FastAPI dependency - returns admin username or raises 403."""
+    username, is_admin = user
+    if not is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return username
+
+
 # ---- helpers ---------------------------------------------------------------
+
 
 # In-memory session store: {username: {quiz_id: {question_id: [answers]}}}
 _sessions: dict[str, dict[int, dict[int, list[str]]]] = {}
@@ -33,7 +58,7 @@ def _clear_session(username: str, quiz_id: int) -> None:
 
 def _tpl(request: Request, name: str, ctx: dict, *, status_code: int = 200) -> HTMLResponse:
     """Shorthand for rendering a template."""
-    ctx.setdefault("app_title", request.app.state.settings.app.title)
+    ctx.setdefault("app_title", request.app.state.settings.app_title)
     ctx["request"] = request
     return request.app.state.templates.TemplateResponse(name, ctx, status_code=status_code)
 

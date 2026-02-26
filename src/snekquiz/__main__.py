@@ -1,6 +1,6 @@
-"""Allow running with `python -m snekquiz`."""
+"""SnekQuiz - MCQ quiz web application."""
 
-from snekquiz import main
+from . import main
 
 if __name__ == "__main__":
     main()

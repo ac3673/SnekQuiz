@@ -41,4 +41,11 @@ htmlcov/
 # Data (optional: remove if data/ should be tracked)
 *.sqlite3
 *.db
+*.db-shm
+*.db-wal
 *.log
+config.yaml
+
+# Keys
+*.pem
+*.crt

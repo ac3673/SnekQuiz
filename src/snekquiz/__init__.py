@@ -1,9 +1,8 @@
-"""SnekQuiz - MCQ quiz web application."""
-
 from __future__ import annotations
 
 import logging
 import logging.config
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -14,15 +13,15 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from snekquiz import database as db
-from snekquiz.auth import load_users
-from snekquiz.models import Settings
-from snekquiz.routes import router
+from . import database as db
+from .auth import AuthManager
+from .models import Settings
+from .routes import router
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
-logger = logging.getLogger("snekquiz")
+log = logging.getLogger(__name__)
 
 _PKG_DIR = Path(__file__).resolve().parent
 _CONFIG_DIR = _PKG_DIR / "config"
@@ -31,21 +30,19 @@ _STATIC_DIR = _PKG_DIR / "static"
 
 # Module-level overrides set by main() before uvicorn starts.
 # create_app() reads these so the factory picks up CLI arguments.
-_app_config_path: Path | None = None
-_log_config_path: Path | None = None
 
 
 def _resolve_app_config() -> Path:
     """Return the effective app config path."""
-    if _app_config_path is not None:
-        return _app_config_path
+    if app_config := os.getenv("APP_CONFIG"):
+        return Path(app_config)
     return _CONFIG_DIR / "app.yaml"
 
 
 def _resolve_log_config() -> Path:
     """Return the effective logging config path."""
-    if _log_config_path is not None:
-        return _log_config_path
+    if log_config := os.getenv("LOG_CONFIG"):
+        return Path(log_config)
     return _CONFIG_DIR / "logging.yaml"
 
 
@@ -77,20 +74,22 @@ def _setup_logging(log_config_path: Path | None = None) -> None:
 def create_app() -> FastAPI:
     """Application factory."""
     _setup_logging()
+    log.debug("Create app in factory")
     settings = _load_settings()
+    log.debug(f"Loaded settings {settings}")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         """Startup / shutdown."""
-        logger.info("Starting %s", settings.app.title)
+        log.info(f"Starting {settings.app_title}")
         await db.init_db(settings.db.path)
-        load_users(settings.auth.admins, settings.auth.users, settings.auth.ldap)
+        app.state.auth = AuthManager(settings.auth)
         yield
         await db.close_db()
-        logger.info("Stopped %s", settings.app.title)
+        log.info(f"Stopped {settings.app_title}")
 
     app = FastAPI(
-        title=settings.app.title,
+        title=settings.app_title,
         lifespan=lifespan,
     )
 
@@ -121,7 +120,7 @@ def create_app() -> FastAPI:
 
     # Routes
     app.include_router(router)
-
+    log.debug("App factory finished")
     return app
 
 
@@ -149,18 +148,23 @@ def main() -> None:
         default=None,
         help="Path to logging config YAML (default: bundled config/logging.yaml)",
     )
+    parser.add_argument("--host", type=str, default="0.0.0.0")
+    parser.add_argument("--port", type=int, default=8001)
+    parser.add_argument("--reload", action="store_true")
+    parser.add_argument("--ssl_keyfile", type=str, default=None)
+    parser.add_argument("--ssl_certfile", type=str, default=None)
+
     args = parser.parse_args()
-
-    # Store overrides at module level so create_app() can read them
-    global _app_config_path, _log_config_path
-    _app_config_path = args.config
-    _log_config_path = args.log_config
-
-    settings = _load_settings()
+    if args.config:
+        os.environ["APP_CONFIG"] = args.config.as_posix()
+    if args.log_config:
+        os.environ["LOG_CONFIG"] = args.log_config.as_posix()
     uvicorn.run(
         "snekquiz:create_app",
         factory=True,
-        host=settings.app.host,
-        port=settings.app.port,
-        reload=settings.app.debug,
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+        ssl_keyfile=args.ssl_keyfile,
+        ssl_certfile=args.ssl_certfile,
     )

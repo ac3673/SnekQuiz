@@ -8,7 +8,7 @@ from pathlib import Path
 
 import aiosqlite
 
-logger = logging.getLogger("snekquiz.database")
+logger = logging.getLogger(__name__)
 
 _db: aiosqlite.Connection | None = None
 
