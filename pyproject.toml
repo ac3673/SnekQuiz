@@ -1,6 +1,6 @@
 [project]
 name = "snekquiz"
-version = "0.1.1"
+version = "0.1.2"
 description = "A minimalist MCQ quiz web application"
 readme = "README.md"
 requires-python = ">=3.13"
