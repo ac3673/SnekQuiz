@@ -80,6 +80,12 @@ known-first-party = ["snekquiz"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 
+[tool.coverage.run]
+source = ["snekquiz"]
+
+[tool.coverage.report]
+show_missing = true
+
 [dependency-groups]
 dev = [
     "prek>=0.3.3",
@@ -87,5 +93,7 @@ dev = [
     "ty>=0.0.18",
     "pytest>=8.0",
     "pytest-asyncio>=1.0",
+    "pytest-cov>=6.0",
+    "genbadge[coverage]>=1.1",
     "httpx>=0.27",
 ]

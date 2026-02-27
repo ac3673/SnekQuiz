@@ -35,6 +35,7 @@ Thumbs.db
 # Testing / Coverage
 .coverage
 htmlcov/
+reports/coverage.xml
 .pytest_cache/
 .mypy_cache/
 
