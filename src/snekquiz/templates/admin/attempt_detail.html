@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ attempt.username }}'s attempt – {{ quiz_name }}{% endblock %}
+{% block title %}{{ attempt.full_name }}'s attempt – {{ quiz_name }}{% endblock %}
 
 {% block content %}
 <section class="admin-page">
@@ -7,7 +7,7 @@
 
   <div class="admin-header">
     <div>
-      <h1>{{ attempt.username }}'s Submission</h1>
+      <h1>{{ attempt.full_name }}'s Submission</h1>
       <p class="meta">
         {{ quiz_name }} &middot;
         Score: {{ attempt.score }} / {{ attempt.total }}
@@ -39,10 +39,10 @@
           <span class="aq-opt-id">{{ opt.id }}</span>
           <span class="aq-opt-text">{{ opt.text }}</span>
           {% if opt.id in item.user_answers %}
-            <span class="aq-opt-tag tag-user">User</span>
+          <span class="aq-opt-tag tag-user">User</span>
           {% endif %}
           {% if opt.id in item.correct_answers %}
-            <span class="aq-opt-tag tag-correct">Correct</span>
+          <span class="aq-opt-tag tag-correct">Correct</span>
           {% endif %}
         </li>
         {% endfor %}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -13,6 +13,9 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from . import database as db
 from .models import Quiz
 
+if TYPE_CHECKING:
+    from .auth import User
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -20,25 +23,26 @@ router = APIRouter()
 security = HTTPBasic()
 
 
-def get_current_user(
+async def get_current_user(
     request: Request,
     credentials: Annotated[HTTPBasicCredentials, Depends(security)],
-) -> tuple[str, bool]:
-    """FastAPI dependency - returns (username, is_admin)."""
-    return request.app.state.auth.authenticate_user(credentials)
+) -> User:
+    """FastAPI dependency - authenticates and persists the user."""
+    user = request.app.state.auth.authenticate_user(credentials)
+    await db.upsert_user(user.username, user.full_name)
+    return user
 
 
 def get_admin_user(
-    user: Annotated[tuple[str, bool], Depends(get_current_user)],
-) -> str:
+    user: Annotated[User, Depends(get_current_user)],
+) -> User:
     """FastAPI dependency - returns admin username or raises 403."""
-    username, is_admin = user
-    if not is_admin:
+    if not user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
         )
-    return username
+    return user
 
 
 # ---- helpers ---------------------------------------------------------------
@@ -91,20 +95,20 @@ def _build_question_stats(quiz: Quiz, attempts: list[dict]) -> list[dict]:
 @router.get("/", response_class=HTMLResponse)
 async def home(
     request: Request,
-    user: Annotated[tuple[str, bool], Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
-    username, is_admin = user
     quizzes = await db.get_all_quizzes()
-    completed_ids = await db.get_completed_quiz_ids(username)
-    in_progress_ids = await db.get_in_progress_quiz_ids(username)
+    completed_ids = await db.get_completed_quiz_ids(user.username)
+    in_progress_ids = await db.get_in_progress_quiz_ids(user.username)
     # Don't show "in progress" for quizzes that are already completed
     in_progress_ids -= completed_ids
     return _tpl(
         request,
         "home.html",
         {
-            "username": username,
-            "is_admin": is_admin,
+            "name": user.full_name,
+            "username": user.username,
+            "is_admin": user.is_admin,
             "quizzes": quizzes,
             "completed_ids": completed_ids,
             "in_progress_ids": in_progress_ids,
@@ -116,16 +120,15 @@ async def home(
 async def quiz_start(
     quiz_id: int,
     request: Request,
-    user: Annotated[tuple[str, bool], Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Redirect to the first unanswered question, resuming any saved progress."""
-    username, _is_admin = user
     row = await db.get_quiz_by_id(quiz_id)
     if not row:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
     quiz = Quiz.model_validate_json(row["data_json"])
-    progress = await db.get_progress(username, quiz_id)
+    progress = await db.get_progress(user.username, quiz_id)
 
     # Find the first unanswered question
     for i, q in enumerate(quiz.questions, 1):
@@ -141,9 +144,8 @@ async def quiz_question(
     quiz_id: int,
     question_num: int,
     request: Request,
-    user: Annotated[tuple[str, bool], Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
-    username, is_admin = user
     row = await db.get_quiz_by_id(quiz_id)
     if not row:
         raise HTTPException(status_code=404, detail="Quiz not found")
@@ -155,7 +157,7 @@ async def quiz_question(
     question = quiz.questions[question_num - 1]
 
     # If user already answered this question, skip forward
-    progress = await db.get_progress(username, quiz_id)
+    progress = await db.get_progress(user.username, quiz_id)
     if question.id in progress:
         for next_num in range(question_num + 1, len(quiz.questions) + 1):
             next_q = quiz.questions[next_num - 1]
@@ -167,8 +169,8 @@ async def quiz_question(
         request,
         "question.html",
         {
-            "username": username,
-            "is_admin": is_admin,
+            "username": user.username,
+            "is_admin": user.is_admin,
             "quiz_id": quiz_id,
             "quiz_name": quiz.quiz_name,
             "question": question,
@@ -183,10 +185,9 @@ async def submit_answer(
     quiz_id: int,
     question_id: int,
     request: Request,
-    user: Annotated[tuple[str, bool], Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
     answers: Annotated[list[str], Form()] = [],  # noqa: B006
 ):
-    username, _is_admin = user
     row = await db.get_quiz_by_id(quiz_id)
     if not row:
         raise HTTPException(status_code=404, detail="Quiz not found")
@@ -196,7 +197,7 @@ async def submit_answer(
     if question is None:
         raise HTTPException(status_code=404, detail="Question not found")
 
-    await db.save_progress_answer(username, quiz_id, question_id, answers)
+    await db.save_progress_answer(user.username, quiz_id, question_id, answers)
 
     is_correct = sorted(answers) == sorted(question.correct_answers)
 
@@ -223,10 +224,9 @@ async def submit_answer(
 async def quiz_finish(
     quiz_id: int,
     request: Request,
-    user: Annotated[tuple[str, bool], Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Interstitial page shown when all questions are answered."""
-    username, is_admin = user
     row = await db.get_quiz_by_id(quiz_id)
     if not row:
         raise HTTPException(status_code=404, detail="Quiz not found")
@@ -236,8 +236,8 @@ async def quiz_finish(
         request,
         "complete.html",
         {
-            "username": username,
-            "is_admin": is_admin,
+            "username": user.username,
+            "is_admin": user.is_admin,
             "quiz_id": quiz_id,
             "quiz_name": quiz.quiz_name,
             "total_questions": len(quiz.questions),
@@ -249,16 +249,15 @@ async def quiz_finish(
 async def quiz_complete(
     quiz_id: int,
     request: Request,
-    user: Annotated[tuple[str, bool], Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Persist the attempt and redirect to the results page (PRG pattern)."""
-    username, _is_admin = user
     row = await db.get_quiz_by_id(quiz_id)
     if not row:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
     quiz = Quiz.model_validate_json(row["data_json"])
-    progress = await db.get_progress(username, quiz_id)
+    progress = await db.get_progress(user.username, quiz_id)
 
     score = 0
     total = len(quiz.questions)
@@ -268,13 +267,13 @@ async def quiz_complete(
             score += 1
 
     attempt_id = await db.save_attempt(
-        username=username,
+        username=user.username,
         quiz_id=quiz_id,
         score=score,
         total=total,
         answers={str(k): v for k, v in progress.items()},
     )
-    await db.delete_progress(username, quiz_id)
+    await db.delete_progress(user.username, quiz_id)
     return RedirectResponse(url=f"/quiz/{quiz_id}/results/{attempt_id}", status_code=303)
 
 
@@ -283,16 +282,15 @@ async def quiz_results(
     quiz_id: int,
     attempt_id: int,
     request: Request,
-    user: Annotated[tuple[str, bool], Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Show results for a persisted attempt (safe to refresh)."""
-    username, is_admin = user
     row = await db.get_quiz_by_id(quiz_id)
     if not row:
         raise HTTPException(status_code=404, detail="Quiz not found")
 
     attempt = await db.get_attempt_by_id(attempt_id)
-    if not attempt or attempt["username"] != username or attempt["quiz_id"] != quiz_id:
+    if not attempt or attempt["username"] != user.username or attempt["quiz_id"] != quiz_id:
         raise HTTPException(status_code=404, detail="Attempt not found")
 
     quiz = Quiz.model_validate_json(row["data_json"])
@@ -319,8 +317,8 @@ async def quiz_results(
         request,
         "results.html",
         {
-            "username": username,
-            "is_admin": is_admin,
+            "username": user.username,
+            "is_admin": user.is_admin,
             "quiz_id": quiz_id,
             "quiz_name": quiz.quiz_name,
             "score": score,
@@ -336,7 +334,7 @@ async def quiz_results(
 @router.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(
     request: Request,
-    username: Annotated[str, Depends(get_admin_user)],
+    user: Annotated[User, Depends(get_admin_user)],
 ):
     """Admin portal - overview of all quizzes and aggregated results."""
     stats = await db.get_quiz_stats()
@@ -344,7 +342,7 @@ async def admin_dashboard(
         request,
         "admin/dashboard.html",
         {
-            "username": username,
+            "username": user.username,
             "is_admin": True,
             "stats": stats,
         },
@@ -355,7 +353,7 @@ async def admin_dashboard(
 async def admin_quiz_detail(
     quiz_id: int,
     request: Request,
-    username: Annotated[str, Depends(get_admin_user)],
+    user: Annotated[User, Depends(get_admin_user)],
 ):
     """Admin drilldown - per-question analytics and all attempts."""
     row = await db.get_quiz_by_id(quiz_id)
@@ -372,7 +370,7 @@ async def admin_quiz_detail(
         request,
         "admin/quiz_detail.html",
         {
-            "username": username,
+            "username": user.username,
             "is_admin": True,
             "quiz_id": quiz_id,
             "quiz_name": quiz.quiz_name,
@@ -388,7 +386,7 @@ async def admin_attempt_detail(
     quiz_id: int,
     attempt_id: int,
     request: Request,
-    username: Annotated[str, Depends(get_admin_user)],
+    user: Annotated[User, Depends(get_admin_user)],
 ):
     """Admin view of a specific user's quiz submission."""
     row = await db.get_quiz_by_id(quiz_id)
@@ -423,7 +421,7 @@ async def admin_attempt_detail(
         request,
         "admin/attempt_detail.html",
         {
-            "username": username,
+            "username": user.username,
             "is_admin": True,
             "quiz_id": quiz_id,
             "quiz_name": quiz.quiz_name,
@@ -436,14 +434,14 @@ async def admin_attempt_detail(
 @router.get("/admin/upload", response_class=HTMLResponse)
 async def admin_upload_form(
     request: Request,
-    username: Annotated[str, Depends(get_admin_user)],
+    user: Annotated[User, Depends(get_admin_user)],
 ):
     """Show the quiz upload form."""
     return _tpl(
         request,
         "admin/upload.html",
         {
-            "username": username,
+            "username": user.username,
             "is_admin": True,
         },
     )
@@ -452,7 +450,7 @@ async def admin_upload_form(
 @router.post("/admin/upload", response_class=HTMLResponse)
 async def admin_upload_submit(
     request: Request,
-    username: Annotated[str, Depends(get_admin_user)],
+    user: Annotated[User, Depends(get_admin_user)],
     quiz_json: Annotated[str, Form()],
 ):
     """Handle quiz upload from the admin form."""
@@ -463,7 +461,7 @@ async def admin_upload_submit(
             request,
             "admin/upload.html",
             {
-                "username": username,
+                "username": user.username,
                 "is_admin": True,
                 "error": f"Invalid quiz JSON: {exc}",
                 "prefill": quiz_json,
@@ -476,7 +474,7 @@ async def admin_upload_submit(
             request,
             "admin/upload.html",
             {
-                "username": username,
+                "username": user.username,
                 "is_admin": True,
                 "error": f"Quiz {quiz.quiz_name!r} already exists",
                 "prefill": quiz_json,
@@ -485,7 +483,7 @@ async def admin_upload_submit(
         )
 
     quiz_id = await db.insert_quiz(quiz.quiz_name, quiz.model_dump_json())
-    logger.info("Admin %r uploaded quiz %r (id=%s)", username, quiz.quiz_name, quiz_id)
+    logger.info("Admin %r uploaded quiz %r (id=%s)", user.username, quiz.quiz_name, quiz_id)
     return RedirectResponse(url=f"/admin/quiz/{quiz_id}", status_code=303)
 
 
@@ -493,13 +491,13 @@ async def admin_upload_submit(
 async def admin_delete_quiz(
     quiz_id: int,
     request: Request,
-    username: Annotated[str, Depends(get_admin_user)],
+    user: Annotated[User, Depends(get_admin_user)],
 ):
     """Delete a quiz and all its attempts."""
     deleted = await db.delete_quiz(quiz_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Quiz not found")
-    logger.info("Admin %r deleted quiz id=%s", username, quiz_id)
+    logger.info("Admin %r deleted quiz id=%s", user.username, quiz_id)
     return RedirectResponse(url="/admin", status_code=303)
 
 
@@ -509,7 +507,7 @@ async def admin_delete_quiz(
 @router.post("/api/quizzes", status_code=status.HTTP_201_CREATED)
 async def api_upload_quiz(
     quiz: Quiz,
-    username: Annotated[str, Depends(get_admin_user)],
+    user: Annotated[User, Depends(get_admin_user)],
 ):
     """Upload a new quiz via JSON body (admin only)."""
     if await db.quiz_name_exists(quiz.quiz_name):
@@ -518,13 +516,13 @@ async def api_upload_quiz(
             detail=f"Quiz {quiz.quiz_name!r} already exists",
         )
     quiz_id = await db.insert_quiz(quiz.quiz_name, quiz.model_dump_json())
-    logger.info("Admin %r uploaded quiz %r (id=%s)", username, quiz.quiz_name, quiz_id)
+    logger.info("Admin %r uploaded quiz %r (id=%s)", user.username, quiz.quiz_name, quiz_id)
     return {"id": quiz_id, "quiz_name": quiz.quiz_name}
 
 
 @router.get("/api/quizzes")
 async def api_list_quizzes(
-    user: Annotated[tuple[str, bool], Depends(get_current_user)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     """Return JSON list of all quizzes."""
     return await db.get_all_quizzes()
@@ -533,7 +531,7 @@ async def api_list_quizzes(
 @router.get("/api/quizzes/{quiz_id}/stats")
 async def api_quiz_stats(
     quiz_id: int,
-    username: Annotated[str, Depends(get_admin_user)],
+    user: Annotated[User, Depends(get_admin_user)],
 ):
     """Return attempts for a quiz (admin only)."""
     row = await db.get_quiz_by_id(quiz_id)
@@ -545,10 +543,10 @@ async def api_quiz_stats(
 @router.delete("/api/quizzes/{quiz_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def api_delete_quiz(
     quiz_id: int,
-    username: Annotated[str, Depends(get_admin_user)],
+    user: Annotated[User, Depends(get_admin_user)],
 ):
     """Delete a quiz (admin only)."""
     deleted = await db.delete_quiz(quiz_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Quiz not found")
-    logger.info("Admin %r deleted quiz id=%s via API", username, quiz_id)
+    logger.info("Admin %r deleted quiz id=%s via API", user.username, quiz_id)

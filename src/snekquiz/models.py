@@ -28,6 +28,7 @@ class LdapSettings(BaseModel):
     search_base: str | None = None
     search_filter: str = "(&(objectclass=person)(SamAccountName={username}))"
     group_attrib: str = "memberOf"
+    name_attrib: str = "CN"
     domain: str | None = None
     use_ssl: bool = True
     admin_groups: list[str] = Field(default_factory=list)

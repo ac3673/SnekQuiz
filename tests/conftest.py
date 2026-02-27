@@ -8,6 +8,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from snekquiz import database as db
+from snekquiz.auth import User
 from snekquiz.models import Quiz
 
 # ---------------------------------------------------------------------------
@@ -123,7 +124,9 @@ def _make_test_app():
 
         def authenticate_user(self, credentials):
             is_admin = credentials.username.startswith("admin")
-            return credentials.username, is_admin
+            return User(
+                username=credentials.username, is_admin=is_admin, full_name=credentials.username
+            )
 
     app.state.auth = _FakeAuth()
     app.include_router(router)

@@ -66,6 +66,11 @@ async def init_db(db_path: str) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_progress_user_quiz
             ON quiz_progress(username, quiz_id);
+
+        CREATE TABLE IF NOT EXISTS users (
+            username    TEXT PRIMARY KEY,
+            full_name   TEXT NOT NULL
+        );
         """
     )
     await _db.commit()
@@ -146,7 +151,15 @@ async def save_attempt(
 async def get_attempt_by_id(attempt_id: int) -> dict | None:
     """Return a single attempt by its id."""
     db = await get_db()
-    cursor = await db.execute("SELECT * FROM attempts WHERE id = ?", (attempt_id,))
+    cursor = await db.execute(
+        """
+        SELECT a.*, COALESCE(u.full_name, a.username) AS full_name
+        FROM attempts a
+        LEFT JOIN users u ON u.username = a.username
+        WHERE a.id = ?
+        """,
+        (attempt_id,),
+    )
     row = await cursor.fetchone()
     return dict(row) if row else None
 
@@ -202,11 +215,14 @@ async def get_quiz_attempts(quiz_id: int) -> list[dict]:
     cursor = await db.execute(
         """
         SELECT
-            a.id, a.username, a.score, a.total,
+            a.id, a.username,
+            COALESCE(u.full_name, a.username) AS full_name,
+            a.score, a.total,
             ROUND(a.score * 100.0 / a.total, 1) AS score_pct,
             a.answers_json,
             a.completed_at
         FROM attempts a
+        LEFT JOIN users u ON u.username = a.username
         WHERE a.quiz_id = ?
         ORDER BY a.completed_at DESC
         """,
@@ -267,6 +283,17 @@ async def delete_progress(username: str, quiz_id: int) -> None:
     await db.execute(
         "DELETE FROM quiz_progress WHERE username = ? AND quiz_id = ?",
         (username, quiz_id),
+    )
+    await db.commit()
+
+
+async def upsert_user(username: str, full_name: str) -> None:
+    """Insert or update a user's full name."""
+    db = await get_db()
+    await db.execute(
+        "INSERT INTO users (username, full_name) VALUES (?, ?)"
+        " ON CONFLICT(username) DO UPDATE SET full_name = excluded.full_name",
+        (username, full_name),
     )
     await db.commit()
 
