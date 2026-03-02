@@ -13,14 +13,14 @@ A minimalist multiple-choice quiz web application built with **FastAPI**, **HTMX
 
 ## Features
 
-- **Role-based auth** – admins and quiz-takers via HTTP Basic authentication
-- **Quiz catalogue** – home page lists all quizzes, highlighting completed vs new
-- **Paginated questions** – one question at a time with instant feedback via HTMX
-- **Results page** – score summary with per-question review (safe to refresh)
-- **Admin portal** – upload quizzes, view aggregated results, delete quizzes
-- **Quiz API** – `POST /api/quizzes` (admin), `GET /api/quizzes`, `DELETE /api/quizzes/{id}` (admin)
-- **SQLite storage** – lightweight, zero-config persistence via aiosqlite
-- **YAML config** – app settings parsed into Pydantic models, logging via `dictConfig`
+- **Simple auth** – HTTP Basic. Admins can do admin things, users can take quizzes
+- **Quiz list** – See what's available, what you've finished, what's left to do
+- **One question at a time** – HTMX gives you instant feedback without page reloads
+- **Results** – Your score, what you got wrong, what the right answers were
+- **Admin stuff** – Upload quizzes (JSON), see how everyone's doing, delete quizzes when needed
+- **API** – POST new quizzes, GET quiz lists, DELETE when you messed up
+- **SQLite** – Because sometimes simple is better. No database server required
+- **YAML config** – Tweak settings without touching code
 
 ## Quick Start
 
@@ -28,7 +28,7 @@ A minimalist multiple-choice quiz web application built with **FastAPI**, **HTMX
 # Install dependencies (requires Python 3.13+ and uv)
 uv sync
 
-# Run the app
+# Run the app (default: http://0.0.0.0:8001)
 uv run snekquiz
 
 # or run via the CLI entry-point
@@ -37,16 +37,22 @@ snekquiz
 # or via python -m
 python -m snekquiz
 
-# or via uvicorn directly
-uvicorn snekquiz:create_app --factory
+# Run with custom host/port, SSL, auto-reload for development
+snekquiz --host localhost --port 8000 --ssl_keyfile key.pem --ssl_certfile cert.pem --reload
+
+# Run with custom config files
+snekquiz --config /path/to/app.yaml --log-config /path/to/logging.yaml
+
+# or via uvicorn directly. NB this will expect `uvicorn` CLI args only
+uvicorn snekquiz:create_app --factory --host 0.0.0.0 --port 8001
 ```
 
-The server starts at **http://localhost:8000**. Log in with one of the default
+The server starts at **http://0.0.0.0:8001** by default. Log in with one of the default
 accounts configured in `src/snekquiz/config/app.yaml`:
 
-Admins can also take quizzes. The admin portal is at **http://localhost:8000/admin**.
+Admins can also take quizzes. The admin portal is at **http://0.0.0.0:8001/admin**.
 
-## Uploading a Quiz
+## Adding Quizzes
 
 Via the **admin portal** at `/admin/upload`, or via the API:
 
@@ -54,10 +60,10 @@ Via the **admin portal** at `/admin/upload`, or via the API:
 curl -u admin:admin \
   -H "Content-Type: application/json" \
   -d @quiz.json \
-  http://localhost:8000/api/quizzes
+  http://localhost:8001/api/quizzes
 ```
 
-See the example quiz format below.
+Quiz format is pretty straightforward:
 
 <details>
 <summary>Example quiz.json</summary>
@@ -130,19 +136,34 @@ src/snekquiz/
 
 **App config** (`src/snekquiz/config/app.yaml`) provides default config if no path is provided.
 
-A user specified config file can supplied with:
+A user specified config file can be supplied with:
 
-- The `APP_CONFIG` environment variable is read to load a config file, eg `export APP_CONFIG=/path/to/config.yaml`.
-- Providing `-c` or `--app-config` arguments
-
+- The `APP_CONFIG` environment variable: `export APP_CONFIG=/path/to/config.yaml`
+- The `--config` (or `-c`) CLI argument: `snekquiz --config /path/to/config.yaml`
 
 **Logging config** (`src/snekquiz/config/logging.yaml`) provides default logging config.
 
-A user specified config file can supplied with:
-- The `LOG_CONFIG` environment variable
-- The `-l` or `--log-config` arguments
+A user specified config file can be supplied with:
 
-When running with `uvicorn` you must use the environment variable approach.
+- The `LOG_CONFIG` environment variable: `export LOG_CONFIG=/path/to/logging.yaml`
+- The `--log-config` (or `-l`) CLI argument: `snekquiz --log-config /path/to/logging.yaml`
+
+When running with `uvicorn` directly, you must use the environment variable approach.
+
+### CLI Arguments
+
+```bash
+snekquiz --help
+```
+
+Available options:
+- `--config`, `-c`: Path to app config YAML (default: bundled config/app.yaml)
+- `--log-config`, `-l`: Path to logging config YAML (default: bundled config/logging.yaml)
+- `--host`: Host to bind to (default: 0.0.0.0)
+- `--port`: Port to bind to (default: 8001)
+- `--reload`: Enable auto-reload for development
+- `--ssl_keyfile`: Path to SSL key file
+- `--ssl_certfile`: Path to SSL certificate file
 
 ## Development
 
@@ -163,10 +184,12 @@ prek run --all-files
 
 Colours: `#ffffff` · `#000000` · `#002554` · `#099d91` · `#00cc99`
 
+White, black, navy, teal, and more teal: `#ffffff` · `#000000` · `#002554` · `#099d91` · `#00cc99`
+
 ## License
 
 See [LICENSE](LICENSE).
 
 ---
 
-<sub>Built with vibes and [Claude Opus 4.6](https://www.anthropic.com/claude).</sub>
+<sub>Made with questionable judgment and Claude Opus 4.6.</sub>
