@@ -3,7 +3,7 @@
 
 {% block content %}
 <section class="admin-page">
-  <a href="/admin/quiz/{{ quiz_id }}" class="back-link">&larr; {{ quiz_name }}</a>
+  <a href="{{ request.url_for('admin_quiz_detail', quiz_id=quiz_id) }}" class="back-link">&larr; {{ quiz_name }}</a>
 
   <div class="admin-header">
     <div>

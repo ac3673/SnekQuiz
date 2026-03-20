@@ -20,11 +20,8 @@
       <p class="hint">Select all that apply.</p>
       {% endif %}
 
-      <form
-        hx-post="/quiz/{{ quiz_id }}/answer/{{ question.id }}"
-        hx-target="#question-area"
-        hx-swap="innerHTML"
-      >
+      <form hx-post="{{ request.url_for('submit_answer', quiz_id=quiz_id, question_id=question.id) }}"
+        hx-target="#question-area" hx-swap="innerHTML">
         <ul class="options-list">
           {% for opt in question.options %}
           <li class="option-item">

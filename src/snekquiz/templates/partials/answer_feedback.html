@@ -33,7 +33,7 @@
   {% if next_url %}
   <a href="{{ next_url }}" class="btn btn-primary">Next &rarr;</a>
   {% else %}
-  <form method="post" action="/quiz/{{ quiz_id }}/complete">
+  <form method="post" action="{{ request.url_for('quiz_complete', quiz_id=quiz_id) }}">
     <button type="submit" class="btn btn-primary">View Results</button>
   </form>
   {% endif %}

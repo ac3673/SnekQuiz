@@ -5,7 +5,7 @@
 <section class="admin-page">
   <div class="admin-header">
     <h1>Admin Dashboard</h1>
-    <a href="/admin/upload" class="btn btn-primary">Upload Quiz</a>
+    <a href="{{ request.url_for('admin_upload_form') }}" class="btn btn-primary">Upload Quiz</a>
   </div>
 
   {% if stats %}
@@ -26,7 +26,7 @@
         {% for s in stats %}
         <tr>
           <td class="cell-name">
-            <a href="/admin/quiz/{{ s.quiz_id }}">{{ s.quiz_name }}</a>
+            <a href="{{ request.url_for('admin_quiz_detail', quiz_id=s.quiz_id) }}">{{ s.quiz_name }}</a>
           </td>
           <td class="cell-num">{{ s.attempt_count or 0 }}</td>
           <td class="cell-num">{{ s.unique_users or 0 }}</td>
@@ -34,7 +34,7 @@
           <td class="cell-num">{{ s.best_score_pct if s.best_score_pct is not none else "–" }}</td>
           <td class="cell-num">{{ s.worst_score_pct if s.worst_score_pct is not none else "–" }}</td>
           <td class="cell-action">
-            <a href="/admin/quiz/{{ s.quiz_id }}" class="btn-sm">View</a>
+            <a href="{{ request.url_for('admin_quiz_detail', quiz_id=s.quiz_id) }}" class="btn-sm">View</a>
           </td>
         </tr>
         {% endfor %}

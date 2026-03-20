@@ -5,12 +5,12 @@
 <section class="admin-page">
   <div class="admin-header">
     <div>
-      <a href="/admin" class="back-link">&larr; Dashboard</a>
+      <a href="{{ request.url_for('admin_dashboard') }}" class="back-link">&larr; Dashboard</a>
       <h1>{{ quiz_name }}</h1>
       <p class="meta">{{ question_count }} question{{ "s" if question_count != 1 }} &middot; {{ attempts | length }}
         attempt{{ "s" if attempts | length != 1 }}</p>
     </div>
-    <form method="post" action="/admin/quiz/{{ quiz_id }}/delete" class="delete-form"
+    <form method="post" action="{{ request.url_for('admin_delete_quiz', quiz_id=quiz_id) }}" class="delete-form"
       onsubmit="return confirm('Delete this quiz and all its attempts?')">
       <button type="submit" class="btn btn-danger">Delete Quiz</button>
     </form>
@@ -84,7 +84,8 @@
             </td>
             <td class="cell-date">{{ a.completed_at }}</td>
             <td class="cell-action">
-              <a href="/admin/quiz/{{ quiz_id }}/attempt/{{ a.id }}" class="btn-sm">View</a>
+              <a href="{{ request.url_for('admin_attempt_detail', quiz_id=quiz_id, attempt_id=a.id) }}"
+                class="btn-sm">View</a>
             </td>
           </tr>
           {% endfor %}

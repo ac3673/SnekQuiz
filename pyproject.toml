@@ -67,6 +67,7 @@ select = [
 ignore = [
     "S104",   # binding to all interfaces
     "S105",   # hardcoded password in config defaults
+    "TC001",  # typing-only-first-party-import
 ]
 
 [tool.ruff.lint.per-file-ignores]

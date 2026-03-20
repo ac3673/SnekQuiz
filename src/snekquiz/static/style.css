@@ -140,7 +140,8 @@ h2 {
   gap: 0.75rem;
 }
 
-.quiz-card a {
+.quiz-card a,
+.quiz-link {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -158,9 +159,9 @@ h2 {
   box-shadow: var(--shadow);
 }
 
-.quiz-card.completed a,
 .quiz-card.completed .quiz-link {
   border-left: 4px solid var(--mint);
+  color: var(--grey-600);
 }
 
 .quiz-card.in-progress a {

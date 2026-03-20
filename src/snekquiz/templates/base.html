@@ -8,16 +8,16 @@
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="{{ request.url_for('static', path='style.css') }}">
 </head>
 
 <body>
   <header>
     <div class="header-inner">
-      <a href="/" class="logo">&#9670; {{ app_title }}</a>
+      <a href="{{ request.url_for('home') }}" class="logo">&#9670; {{ app_title }}</a>
       <nav class="header-nav">
         {% if is_admin %}
-        <a href="/admin" class="nav-link">Admin</a>
+        <a href="{{ request.url_for('admin_dashboard') }}" class="nav-link">Admin</a>
         {% endif %}
         {% if username %}
         <span class="user-badge">{{ username }}</span>

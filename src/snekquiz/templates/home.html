@@ -15,12 +15,12 @@
         <span class="badge badge-done">Completed</span>
       </span>
       {% elif q.id in in_progress_ids %}
-      <a href="/quiz/{{ q.id }}">
+      <a href="{{ request.url_for('quiz_start', quiz_id=q.id) }}">
         <span class="quiz-name">{{ q.name }}</span>
         <span class="badge badge-progress">In Progress</span>
       </a>
       {% else %}
-      <a href="/quiz/{{ q.id }}">
+      <a href="{{ request.url_for('quiz_start', quiz_id=q.id) }}">
         <span class="quiz-name">{{ q.name }}</span>
         <span class="badge badge-new">New</span>
       </a>

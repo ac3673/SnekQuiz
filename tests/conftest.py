@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 
 import pytest
+from fastapi.templating import Jinja2Templates
 from httpx import ASGITransport, AsyncClient
 
 from snekquiz import database as db
 from snekquiz.auth import User
 from snekquiz.models import Quiz
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 # ---------------------------------------------------------------------------
 # Sample quiz data used across tests
@@ -95,28 +100,18 @@ def _make_test_app():
     from pathlib import Path
 
     from fastapi import FastAPI
-    from fastapi.responses import HTMLResponse
-    from jinja2 import Environment, FileSystemLoader, select_autoescape
+    from fastapi.staticfiles import StaticFiles
 
     from snekquiz.models import Settings
     from snekquiz.routes import router
 
     templates_dir = Path(__file__).resolve().parent.parent / "src" / "snekquiz" / "templates"
+    static_dir = Path(__file__).resolve().parent.parent / "src" / "snekquiz" / "static"
 
     app = FastAPI()
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-    env = Environment(
-        loader=FileSystemLoader(str(templates_dir)),
-        autoescape=select_autoescape(["html"]),
-    )
-
-    class _Templates:
-        def TemplateResponse(self, name, context, status_code=200):  # noqa: N802
-            template = env.get_template(name)
-            html = template.render(**context)
-            return HTMLResponse(content=html, status_code=status_code)
-
-    app.state.templates = _Templates()
+    app.state.templates = Jinja2Templates(templates_dir)
     app.state.settings = Settings()
 
     class _FakeAuth:
@@ -140,7 +135,7 @@ async def app(test_db):
 
 
 @pytest.fixture
-async def client(app) -> AsyncClient:
+async def client(app) -> AsyncGenerator[AsyncClient]:
     """Return an httpx AsyncClient for the test app."""
     transport = ASGITransport(app=app)
     async with AsyncClient(
@@ -152,7 +147,7 @@ async def client(app) -> AsyncClient:
 
 
 @pytest.fixture
-async def admin_client(app) -> AsyncClient:
+async def admin_client(app) -> AsyncGenerator[AsyncClient]:
     """Return an httpx AsyncClient authenticated as an admin."""
     transport = ASGITransport(app=app)
     async with AsyncClient(

@@ -31,7 +31,7 @@
       {% endfor %}
     </div>
 
-    <a href="/" class="btn btn-primary">Back to Quizzes</a>
+    <a href="{{ request.url_for('home') }}" class="btn btn-primary">Back to Quizzes</a>
   </div>
 </section>
 {% endblock %}

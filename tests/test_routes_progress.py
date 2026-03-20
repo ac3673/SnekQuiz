@@ -26,7 +26,7 @@ async def test_quiz_start_fresh_redirects_to_q1(client, quiz_id):
     """Starting a quiz with no progress redirects to question 1."""
     resp = await client.get(f"/quiz/{quiz_id}", follow_redirects=False)
     assert resp.status_code == 302
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/q/1"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/q/1"
 
 
 async def test_quiz_start_resumes_at_first_unanswered(client, quiz_id):
@@ -36,7 +36,7 @@ async def test_quiz_start_resumes_at_first_unanswered(client, quiz_id):
 
     resp = await client.get(f"/quiz/{quiz_id}", follow_redirects=False)
     assert resp.status_code == 302
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/q/2"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/q/2"
 
 
 async def test_quiz_start_resumes_skips_answered(client, quiz_id):
@@ -46,7 +46,7 @@ async def test_quiz_start_resumes_skips_answered(client, quiz_id):
 
     resp = await client.get(f"/quiz/{quiz_id}", follow_redirects=False)
     assert resp.status_code == 302
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/q/3"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/q/3"
 
 
 async def test_quiz_start_all_answered_goes_to_finish(client, quiz_id):
@@ -57,7 +57,7 @@ async def test_quiz_start_all_answered_goes_to_finish(client, quiz_id):
 
     resp = await client.get(f"/quiz/{quiz_id}", follow_redirects=False)
     assert resp.status_code == 302
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/finish"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/finish"
 
 
 # ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ async def test_question_page_skips_answered(client, quiz_id):
 
     resp = await client.get(f"/quiz/{quiz_id}/q/1", follow_redirects=False)
     assert resp.status_code == 302
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/q/2"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/q/2"
 
 
 async def test_question_page_skips_to_finish_when_all_done(client, quiz_id):
@@ -89,7 +89,7 @@ async def test_question_page_skips_to_finish_when_all_done(client, quiz_id):
 
     resp = await client.get(f"/quiz/{quiz_id}/q/1", follow_redirects=False)
     assert resp.status_code == 302
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/finish"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/finish"
 
 
 # ---------------------------------------------------------------------------
@@ -264,28 +264,28 @@ async def test_full_quiz_flow_with_resume(client, quiz_id):
     """Simulate starting a quiz, leaving, resuming, and completing it."""
     # Start: redirects to Q1
     resp = await client.get(f"/quiz/{quiz_id}", follow_redirects=False)
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/q/1"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/q/1"
 
     # Answer Q1
     await _answer_question(client, quiz_id, 1, ["B"])
 
     # "Leave" and come back - should resume at Q2
     resp = await client.get(f"/quiz/{quiz_id}", follow_redirects=False)
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/q/2"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/q/2"
 
     # Answer Q2
     await _answer_question(client, quiz_id, 2, ["A", "C"])
 
     # Resume - should go to Q3
     resp = await client.get(f"/quiz/{quiz_id}", follow_redirects=False)
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/q/3"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/q/3"
 
     # Answer Q3
     await _answer_question(client, quiz_id, 3, ["B"])
 
     # Resume - all answered, go to finish
     resp = await client.get(f"/quiz/{quiz_id}", follow_redirects=False)
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/finish"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/finish"
 
     # Complete
     resp = await client.post(f"/quiz/{quiz_id}/complete", follow_redirects=False)
@@ -320,8 +320,8 @@ async def test_progress_isolated_between_users(client, admin_client, quiz_id):
 
     # testuser resumes at Q2
     resp = await client.get(f"/quiz/{quiz_id}", follow_redirects=False)
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/q/2"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/q/2"
 
     # admin also resumes at Q2
     resp = await admin_client.get(f"/quiz/{quiz_id}", follow_redirects=False)
-    assert resp.headers["location"] == f"/quiz/{quiz_id}/q/2"
+    assert resp.headers["location"] == f"http://testserver/quiz/{quiz_id}/q/2"

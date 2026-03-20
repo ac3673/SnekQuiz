@@ -4,17 +4,15 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from . import database as db
+from .auth import User
 from .models import Quiz
-
-if TYPE_CHECKING:
-    from .auth import User
 
 logger = logging.getLogger(__name__)
 
@@ -133,10 +131,13 @@ async def quiz_start(
     # Find the first unanswered question
     for i, q in enumerate(quiz.questions, 1):
         if q.id not in progress:
-            return RedirectResponse(url=f"/quiz/{quiz_id}/q/{i}", status_code=302)
+            return RedirectResponse(
+                url=request.url_for("quiz_question", quiz_id=quiz_id, question_num=i),
+                status_code=302,
+            )
 
     # All questions answered - go straight to the finish interstitial
-    return RedirectResponse(url=f"/quiz/{quiz_id}/finish", status_code=302)
+    return RedirectResponse(url=request.url_for("quiz_finish", quiz_id=quiz_id), status_code=302)
 
 
 @router.get("/quiz/{quiz_id}/q/{question_num}", response_class=HTMLResponse)
@@ -162,8 +163,13 @@ async def quiz_question(
         for next_num in range(question_num + 1, len(quiz.questions) + 1):
             next_q = quiz.questions[next_num - 1]
             if next_q.id not in progress:
-                return RedirectResponse(url=f"/quiz/{quiz_id}/q/{next_num}", status_code=302)
-        return RedirectResponse(url=f"/quiz/{quiz_id}/finish", status_code=302)
+                return RedirectResponse(
+                    url=request.url_for("quiz_question", quiz_id=quiz_id, question_num=next_num),
+                    status_code=302,
+                )
+        return RedirectResponse(
+            url=request.url_for("quiz_finish", quiz_id=quiz_id), status_code=302
+        )
 
     return _tpl(
         request,
@@ -204,7 +210,9 @@ async def submit_answer(
     question_num = next(i + 1 for i, q in enumerate(quiz.questions) if q.id == question_id)
     next_url = None
     if question_num < len(quiz.questions):
-        next_url = f"/quiz/{quiz_id}/q/{question_num + 1}"
+        next_url = str(
+            request.url_for("quiz_question", quiz_id=quiz_id, question_num=question_num + 1)
+        )
 
     return _tpl(
         request,
@@ -274,7 +282,9 @@ async def quiz_complete(
         answers={str(k): v for k, v in progress.items()},
     )
     await db.delete_progress(user.username, quiz_id)
-    return RedirectResponse(url=f"/quiz/{quiz_id}/results/{attempt_id}", status_code=303)
+    return RedirectResponse(
+        url=request.url_for("quiz_results", quiz_id=quiz_id, attempt_id=attempt_id), status_code=303
+    )
 
 
 @router.get("/quiz/{quiz_id}/results/{attempt_id}", response_class=HTMLResponse)
@@ -484,7 +494,9 @@ async def admin_upload_submit(
 
     quiz_id = await db.insert_quiz(quiz.quiz_name, quiz.model_dump_json())
     logger.info("Admin %r uploaded quiz %r (id=%s)", user.username, quiz.quiz_name, quiz_id)
-    return RedirectResponse(url=f"/admin/quiz/{quiz_id}", status_code=303)
+    return RedirectResponse(
+        url=request.url_for("admin_quiz_detail", quiz_id=quiz_id), status_code=303
+    )
 
 
 @router.post("/admin/quiz/{quiz_id}/delete", response_class=HTMLResponse)
@@ -498,7 +510,7 @@ async def admin_delete_quiz(
     if not deleted:
         raise HTTPException(status_code=404, detail="Quiz not found")
     logger.info("Admin %r deleted quiz id=%s", user.username, quiz_id)
-    return RedirectResponse(url="/admin", status_code=303)
+    return RedirectResponse(url=request.url_for("admin_dashboard"), status_code=303)
 
 
 # ---- API routes (admin-only) -----------------------------------------------

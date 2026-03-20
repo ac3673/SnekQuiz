@@ -9,9 +9,8 @@ from typing import TYPE_CHECKING
 
 import yaml
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from fastapi.templating import Jinja2Templates
 
 from . import database as db
 from .auth import AuthManager
@@ -92,27 +91,7 @@ def create_app() -> FastAPI:
         title=settings.app_title,
         lifespan=lifespan,
     )
-
-    # Jinja2 templates
-    env = Environment(
-        loader=FileSystemLoader(str(_TEMPLATES_DIR)),
-        autoescape=select_autoescape(["html"]),
-    )
-
-    class _Templates:
-        """Minimal adapter matching Starlette's Jinja2Templates interface."""
-
-        def TemplateResponse(  # noqa: N802
-            self,
-            name: str,
-            context: dict,
-            status_code: int = 200,
-        ) -> HTMLResponse:
-            template = env.get_template(name)
-            html = template.render(**context)
-            return HTMLResponse(content=html, status_code=status_code)
-
-    app.state.templates = _Templates()
+    app.state.templates = Jinja2Templates(_TEMPLATES_DIR)
     app.state.settings = settings
 
     # Static files
