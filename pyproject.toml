@@ -1,6 +1,6 @@
 [project]
 name = "snekquiz"
-version = "0.2.1"
+version = "0.3.0"
 description = "A minimalist MCQ quiz web application"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -98,3 +98,9 @@ dev = [
     "genbadge[coverage]>=1.1",
     "httpx>=0.27",
 ]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "uv"
+tag_format = "v$version"
+update_changelog_on_bump = true
