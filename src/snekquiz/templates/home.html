@@ -10,7 +10,7 @@
     <li
       class="quiz-card {% if q.id in completed_ids %}completed{% elif q.id in in_progress_ids %}in-progress{% endif %}">
       {% if q.id in completed_ids %}
-      <span class="quiz-link disabled">
+      <a href="{{ request.url_for('quiz_results', quiz_id=q.id, attempt_id=completed_ids[q.id]) }}">
         <span class="quiz-name">{{ q.name }}</span>
         <span class="badge badge-done">Completed</span>
       </span>

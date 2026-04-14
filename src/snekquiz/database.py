@@ -175,15 +175,22 @@ async def get_user_attempts(username: str) -> list[dict]:
     return [dict(row) for row in rows]
 
 
-async def get_completed_quiz_ids(username: str) -> set[int]:
+async def get_completed_quiz_ids(username: str) -> dict[int, int]:
     """Return set of quiz ids the user has completed at least once."""
     db = await get_db()
     cursor = await db.execute(
-        "SELECT DISTINCT quiz_id FROM attempts WHERE username = ?",
+        """
+        SELECT
+            a.quiz_id,
+            MAX(a.id) as attempt_id
+        FROM attempts a
+        WHERE a.username = ?
+        GROUP BY a.quiz_id
+        """,
         (username,),
     )
     rows = await cursor.fetchall()
-    return {row["quiz_id"] for row in rows}
+    return {row["quiz_id"]: row["attempt_id"] for row in rows}
 
 
 async def get_quiz_stats() -> list[dict]:

@@ -99,7 +99,7 @@ async def home(
     completed_ids = await db.get_completed_quiz_ids(user.username)
     in_progress_ids = await db.get_in_progress_quiz_ids(user.username)
     # Don't show "in progress" for quizzes that are already completed
-    in_progress_ids -= completed_ids
+    in_progress_ids = {ip for ip in in_progress_ids if ip not in completed_ids}
     return _tpl(
         request,
         "home.html",
