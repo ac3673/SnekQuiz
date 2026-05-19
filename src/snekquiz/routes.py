@@ -49,8 +49,7 @@ def get_admin_user(
 def _tpl(request: Request, name: str, ctx: dict, *, status_code: int = 200) -> HTMLResponse:
     """Shorthand for rendering a template."""
     ctx.setdefault("app_title", request.app.state.settings.app_title)
-    ctx["request"] = request
-    return request.app.state.templates.TemplateResponse(name, ctx, status_code=status_code)
+    return request.app.state.templates.TemplateResponse(request, name, ctx, status_code=status_code)
 
 
 def _build_question_stats(quiz: Quiz, attempts: list[dict]) -> list[dict]:

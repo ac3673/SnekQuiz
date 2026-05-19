@@ -1,6 +1,6 @@
 [project]
 name = "snekquiz"
-version = "0.4.1"
+version = "0.4.2"
 description = "A minimalist MCQ quiz web application"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -25,6 +25,7 @@ dependencies = [
     "pydantic>=2.0",
     "aiosqlite>=0.21.0",
     "ldap3>=2.9",
+    "starlette>=1",
 ]
 
 [project.urls]
