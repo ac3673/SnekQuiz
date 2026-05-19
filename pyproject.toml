@@ -97,10 +97,15 @@ dev = [
     "pytest-cov>=6.0",
     "genbadge[coverage]>=1.1",
     "httpx>=0.27",
+    "commitizen>=4.16.2",
 ]
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version_provider = "uv"
 tag_format = "v$version"
+annotated_tag = true
 update_changelog_on_bump = true
+changelog_incremental = true
+changelog_file = "CHANGELOG.md"
+changelog_template = "changelog.md.j2"
+version_provider = "uv"
