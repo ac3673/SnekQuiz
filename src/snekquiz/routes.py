@@ -313,12 +313,15 @@ async def quiz_results(
     for i, q in enumerate(quiz.questions, 1):
         user_ans = saved_answers.get(str(q.id), [])
         correct = sorted(user_ans) == sorted(q.correct_answers)
+        opt_lookup = {opt.id: opt.text for opt in q.options}
         review.append(
             {
                 "num": i,
                 "question_text": q.question_text,
-                "user_answers": user_ans,
-                "correct_answers": q.correct_answers,
+                "user_answers": [f"{a} - {opt_lookup[a]}" for a in user_ans if a in opt_lookup],
+                "correct_answers": [
+                    f"{a} - {opt_lookup[a]}" for a in q.correct_answers if a in opt_lookup
+                ],
                 "is_correct": correct,
             }
         )
@@ -414,14 +417,17 @@ async def admin_attempt_detail(
     for i, q in enumerate(quiz.questions, 1):
         user_ans = saved_answers.get(str(q.id), [])
         correct = sorted(user_ans) == sorted(q.correct_answers)
+        opt_lookup = {opt.id: opt.text for opt in q.options}
         review.append(
             {
                 "num": i,
                 "question_text": q.question_text,
                 "question_type": q.question_type,
                 "options": q.options,
-                "user_answers": user_ans,
-                "correct_answers": q.correct_answers,
+                "user_answers": [f"{a} - {opt_lookup[a]}" for a in user_ans if a in opt_lookup],
+                "correct_answers": [
+                    f"{a} - {opt_lookup[a]}" for a in q.correct_answers if a in opt_lookup
+                ],
                 "explanation": q.explanation,
                 "is_correct": correct,
             }
